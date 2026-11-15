@@ -4,7 +4,9 @@ let pyodideReady = null;
 
 async function initPyodide() {
   const pyodide = await loadPyodide();
-  await pyodide.loadPackage(["numpy", "pandas", "openpyxl"]);
+  await pyodide.loadPackage(["numpy", "pandas", "micropip"]);
+  const micropip = pyodide.pyimport("micropip");
+  await micropip.install("openpyxl");
   const pyCode = await (await fetch("model.py")).text();
   pyodide.runPython(pyCode);
   return pyodide;

@@ -36,9 +36,9 @@ class IOAnalyzer:
         self.sheets = {}
         for name in xls.sheet_names:
             raw = pd.read_excel(xls, sheet_name=name, header=None)
-            col_codes = raw.iloc[3, 2:].fillna("").astype(str).str.strip().tolist()
-            col_names = raw.iloc[4, 2:].fillna("").astype(str).str.replace("\n", " ").str.strip().tolist()
-            data = raw.iloc[5:].copy()
+            col_codes = raw.iloc[4, 2:].fillna("").astype(str).str.strip().tolist()
+            col_names = raw.iloc[5, 2:].fillna("").astype(str).str.replace("\n", " ").str.strip().tolist()
+            data = raw.iloc[6:].copy()
             row_codes = data.iloc[:, 0].fillna("").astype(str).str.strip().tolist()
             row_names = data.iloc[:, 1].fillna("").astype(str).str.replace("\n", " ").str.strip().tolist()
             vals = data.iloc[:, 2:].apply(pd.to_numeric, errors="coerce").fillna(0.0).values
@@ -91,6 +91,8 @@ class IOAnalyzer:
         r_mid = t["row_codes"].index("9590")
         r_va = t["row_codes"].index("9690")
         r_tot_in = t["row_codes"].index("9790")
+        r_dom_mid = dom["row_codes"].index("9590")
+        r_imp_mid = imp["row_codes"].index("9590")
 
         c_exp = t["col_codes"].index("9140")
         c_out = t["col_codes"].index("9310")
@@ -100,8 +102,8 @@ class IOAnalyzer:
         tot_input = t["values"][r_tot_in, idx]
         mid_input = t["values"][r_mid, idx]
         va_val = t["values"][r_va, idx]
-        dom_mid = dom["values"][r_mid, idx]
-        imp_mid = imp["values"][r_mid, idx]
+        dom_mid = dom["values"][r_dom_mid, idx]
+        imp_mid = imp["values"][r_imp_mid, idx]
 
         export_val = t["values"][idx, c_exp]
         output_val = t["values"][idx, c_out]
