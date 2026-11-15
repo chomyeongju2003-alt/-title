@@ -1,0 +1,121 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>2023 산업연관표 분석 웹앱</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>2023년 한국은행 산업연관표(연장표) 분석 시뮬레이터</h1>
+    <p class="subtitle">대분류 · 중분류 · 소분류 · 기본부문 통합 분석 웹앱 (생산자가격 기준)</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>0. 투입산출표 분류 선택 및 데이터 로딩</h2>
+      <div class="control-row">
+        <label for="levelSelect"><strong>분류 기준 선택:</strong></label>
+        <select id="levelSelect">
+          <option value="major">통합대분류 (33부문)</option>
+          <option value="medium">통합중분류 (83부문)</option>
+          <option value="minor">통합소분류 (165부문)</option>
+          <option value="basic">기본부문 (380부문)</option>
+        </select>
+        <button id="loadBtn" class="primary-btn">투입산출표 불러오기</button>
+      </div>
+      <p id="statusText" class="status">분류를 선택한 뒤 "투입산출표 불러오기" 버튼을 누르세요. (최초 실행 시 Python 환경 로딩에 약 5~10초 소요)</p>
+    </section>
+
+    <section class="card">
+      <h2>1. 원자료 및 유발계수표 탐색</h2>
+      <p class="desc">시트(거래표, 투입계수, 유발계수, 항목별 유발액)와 행·열을 선택해 수치를 조회합니다. (금액표 단위: 백만원 / 계수표: 단위 없음)</p>
+      <div class="grid-2">
+        <div>
+          <label for="sheetSelect">시트 선택</label>
+          <select id="sheetSelect" disabled></select>
+        </div>
+        <div>
+          <label for="rowSearch">행(산업/항목) 검색</label>
+          <input type="text" id="rowSearch" placeholder="예: 자동차, 반도체, 부가가치계" disabled />
+        </div>
+        <div>
+          <label for="rowSelect">행 선택</label>
+          <select id="rowSelect" disabled></select>
+        </div>
+        <div>
+          <label for="colSearch">열(수요/투입 부문) 검색</label>
+          <input type="text" id="colSearch" placeholder="열 이름 또는 코드 입력" disabled />
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="rawTable">
+          <thead>
+            <tr><th>열 코드</th><th>열 이름</th><th>값</th><th>단위</th></tr>
+          </thead>
+          <tbody><tr><td colspan="4" class="empty">자료를 먼저 불러오세요.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. 산업별 경제구조 및 전·후방 연쇄효과 분석</h2>
+      <p class="desc">한국은행 산업연관표 산식에 따라 선택한 산업의 투입구조·대외거래 비율(%)과 생산·부가가치·수입유발계수, 영향력·감응도계수를 계산합니다.</p>
+      <div class="grid-2">
+        <div>
+          <label for="indSearch">분석할 산업 검색</label>
+          <input type="text" id="indSearch" placeholder="산업 이름 또는 코드 검색" disabled />
+        </div>
+        <div>
+          <label for="indSelect">산업 선택</label>
+          <select id="indSelect" disabled></select>
+        </div>
+      </div>
+      <div id="indicatorResult" class="kpi-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>3. 국내 생산물 최종수요 증가 파급효과 시뮬레이션</h2>
+      <p class="desc">국산 최종수요 증가액(단위: 백만원)을 시나리오에 추가하면 전 산업의 생산·부가가치·수입 유발액을 계산합니다.</p>
+      <div class="grid-3">
+        <div>
+          <label for="simIndSearch">산업 검색</label>
+          <input type="text" id="simIndSearch" placeholder="산업 이름 또는 코드" disabled />
+        </div>
+        <div>
+          <label for="simIndSelect">대상 산업</label>
+          <select id="simIndSelect" disabled></select>
+        </div>
+        <div>
+          <label for="shockAmount">최종수요 증가액 (단위: 백만원)</label>
+          <input type="number" id="shockAmount" value="1000" min="1" step="100" disabled />
+        </div>
+      </div>
+      <div class="btn-group">
+        <button id="addScenarioBtn" disabled>시나리오에 추가</button>
+        <button id="runSimBtn" class="primary-btn" disabled>파급효과 계산</button>
+        <button id="clearSimBtn" class="secondary-btn" disabled>시나리오 비우기</button>
+      </div>
+      <div id="scenarioList" class="scenario-box"></div>
+      <div id="simSummary" class="kpi-grid"></div>
+      <div class="table-wrap">
+        <table id="simTable">
+          <thead>
+            <tr>
+              <th>산업 코드</th>
+              <th>산업명</th>
+              <th>생산유발액 (백만원)</th>
+              <th>부가가치유발액 (백만원)</th>
+              <th>수입유발액 (백만원)</th>
+            </tr>
+          </thead>
+          <tbody><tr><td colspan="5" class="empty">시나리오를 추가한 뒤 파급효과 계산을 누르세요.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
