@@ -28,7 +28,6 @@ function callWorker(action, payload = {}) {
 
 let allRows = [];
 let currentRowItems = [];
-let currentUnit = "";
 let allSectors = [];
 let scenarios = [];
 
@@ -44,7 +43,10 @@ const rawTableBody = document.querySelector("#rawTable tbody");
 
 const indSearch = document.getElementById("indSearch");
 const indSelect = document.getElementById("indSelect");
+const linkageTypeBox = document.getElementById("linkageTypeBox");
 const indicatorResult = document.getElementById("indicatorResult");
+const topInputBody = document.querySelector("#topInputTable tbody");
+const topOutputBody = document.querySelector("#topOutputTable tbody");
 
 const simIndSearch = document.getElementById("simIndSearch");
 const simIndSelect = document.getElementById("simIndSelect");
@@ -90,7 +92,6 @@ async function onSheetChange() {
   const sheetName = sheetSelect.value;
   const data = await callWorker("get_sheet_rows", { sheetName });
   allRows = data.rows;
-  currentUnit = data.unit;
   rowSearch.value = "";
   renderRowOptions("");
   await onRowChange();
@@ -106,22 +107,23 @@ async function onRowChange() {
   if (!rowSelect.value) return;
   const data = await callWorker("get_row_values", { sheetName: sheetSelect.value, rowIdx: rowSelect.value });
   currentRowItems = data.items;
-  currentUnit = data.unit;
   renderRawTable();
 }
 
 function renderRawTable() {
   const kw = colSearch.value.trim().toLowerCase();
   const filtered = currentRowItems.filter(it => it.code.toLowerCase().includes(kw) || it.name.toLowerCase().includes(kw));
-  const isCoeff = currentUnit.includes("계수");
-  rawTableBody.innerHTML = filtered.map(it => `
-    <tr>
-      <td>${it.code}</td>
-      <td>${it.name}</td>
-      <td class="num">${isCoeff ? it.value.toFixed(6) : Math.round(it.value).toLocaleString()}</td>
-      <td>${currentUnit}</td>
-    </tr>
-  `).join("");
+  rawTableBody.innerHTML = filtered.map(it => {
+    const isDecimal = it.unit.includes("계수") || it.unit.includes("지수") || it.unit === "%";
+    return `
+      <tr>
+        <td>${it.code}</td>
+        <td>${it.name}</td>
+        <td class="num">${isDecimal ? it.value.toFixed(4) : Math.round(it.value).toLocaleString()}</td>
+        <td>${it.unit}</td>
+      </tr>
+    `;
+  }).join("");
 }
 
 function renderSectorOptions(selectEl, sectors, keyword) {
@@ -135,12 +137,19 @@ function renderSectorOptions(selectEl, sectors, keyword) {
 async function onIndicatorIndustryChange() {
   if (!indSelect.value) return;
   const res = await callWorker("get_indicators", { secIdx: indSelect.value });
-  indicatorResult.innerHTML = Object.entries(res).map(([k, v]) => `
+  linkageTypeBox.textContent = res.linkage_type;
+  indicatorResult.innerHTML = Object.entries(res.kpis).map(([k, v]) => `
     <div class="kpi-box">
       <div class="kpi-title">${k}</div>
       <div class="kpi-val">${v}</div>
     </div>
   `).join("");
+  topInputBody.innerHTML = res.top_inputs.length
+    ? res.top_inputs.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td class="num">${r.val.toFixed(6)}</td></tr>`).join("")
+    : '<tr><td colspan="3" class="empty">중간투입 내역 없음</td></tr>';
+  topOutputBody.innerHTML = res.top_outputs.length
+    ? res.top_outputs.map(r => `<tr><td>${r.code}</td><td>${r.name}</td><td class="num">${Math.round(r.val).toLocaleString()}</td></tr>`).join("")
+    : '<tr><td colspan="3" class="empty">중간수요 판매 내역 없음</td></tr>';
 }
 
 sheetSelect.addEventListener("change", onSheetChange);

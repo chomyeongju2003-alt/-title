@@ -27,9 +27,13 @@ class IOAnalyzer:
         self.df_total = None
         self.df_imp = None
         self.df_dom = None
+        self.df_a = None
         self.prod_ind = None
         self.imp_ind = None
         self.va_ind = None
+        self.fd_prod = None
+        self.fd_va = None
+        self.fd_imp = None
 
     def load_excel_bytes(self, file_bytes):
         xls = pd.ExcelFile(io.BytesIO(file_bytes))
@@ -60,9 +64,13 @@ class IOAnalyzer:
         self.df_total = t_sheet
         self.df_imp = self.sheets["A표_수입거래표(생산자)"]
         self.df_dom = self.sheets["A표_국산거래표(생산자)"]
+        self.df_a = self.sheets["총투입계수(A)"]
         self.prod_ind = self.sheets["생산유발계수"]
         self.imp_ind = self.sheets["수입유발계수"]
         self.va_ind = self.sheets["부가가치유발계수"]
+        self.fd_prod = self.sheets["최종수요 항목별 생산유발액"]
+        self.fd_va = self.sheets["최종수요 항목별 부가가치유발액"]
+        self.fd_imp = self.sheets["최종수요 항목별 수입유발액"]
 
         return json.dumps({
             "sheet_names": list(self.sheets.keys()),
@@ -76,14 +84,24 @@ class IOAnalyzer:
 
     def get_row_values(self, sheet_name, row_idx):
         s = self.sheets[sheet_name]
-        row_vals = s["values"][int(row_idx)]
+        r_i = int(row_idx)
+        r_code = s["row_codes"][r_i]
+        row_vals = s["values"][r_i]
         items = []
         for c, n, v in zip(s["col_codes"], s["col_names"], row_vals):
-            items.append({"code": c, "name": n, "value": float(v)})
-        return json.dumps({"items": items, "unit": s["unit"]}, ensure_ascii=False)
+            unit = s["unit"]
+            if r_code == "9801" or c == "9802":
+                unit = "지수 (전산업 평균=1.0)"
+            elif r_code == "9812":
+                unit = "%"
+            elif r_code == "9811":
+                unit = "계수 (최종수요 1단위당 유발액)"
+            items.append({"code": c, "name": n, "value": float(v), "unit": unit})
+        return json.dumps({"items": items}, ensure_ascii=False)
 
     def get_industry_indicators(self, sec_idx):
         idx = int(sec_idx)
+        n = len(self.sectors)
         t = self.df_total
         dom = self.df_dom
         imp = self.df_imp
@@ -118,7 +136,34 @@ class IOAnalyzer:
         i_colsum = self.imp_ind["row_codes"].index("9590")
         v_colsum = self.va_ind["row_codes"].index("9590")
 
-        res = {
+        power_val = float(p_s["values"][r_power, idx])
+        sens_val = float(p_s["values"][idx, c_sens])
+
+        if power_val >= 1.0 and sens_val >= 1.0:
+            l_type = "제1유형 [중간수요적 제조업형]: 영향력지수 ≥ 1.0 & 감응도지수 ≥ 1.0 (전·후방 연쇄효과가 모두 큰 핵심 기간산업)"
+        elif power_val >= 1.0 and sens_val < 1.0:
+            l_type = "제2유형 [최종수요적 제조업형]: 영향력지수 ≥ 1.0 & 감응도지수 < 1.0 (타 산업 원재료 구매 파급력이 큰 최종재 산업)"
+        elif power_val < 1.0 and sens_val >= 1.0:
+            l_type = "제3유형 [중간수요적 원시·서비스형]: 영향력지수 < 1.0 & 감응도지수 ≥ 1.0 (타 산업의 중간재로 널리 쓰이는 기초·인프라 산업)"
+        else:
+            l_type = "제4유형 [최종수요적 원시·서비스형]: 영향력지수 < 1.0 & 감응도지수 < 1.0 (전·후방 연쇄효과가 상대적으로 낮은 독립적 산업)"
+
+        fd = self.fd_prod
+        c_9111 = fd["col_codes"].index("9111")
+        c_9112 = fd["col_codes"].index("9112")
+        c_9121 = fd["col_codes"].index("9121")
+        c_9122 = fd["col_codes"].index("9122")
+        c_9131 = fd["col_codes"].index("9131")
+        c_9132 = fd["col_codes"].index("9132")
+        c_9140 = fd["col_codes"].index("9140")
+        c_9190 = fd["col_codes"].index("9190")
+
+        fd_tot = fd["values"][idx, c_9190]
+        fd_cons = fd["values"][idx, c_9111] + fd["values"][idx, c_9112]
+        fd_inv = fd["values"][idx, c_9121] + fd["values"][idx, c_9122] + fd["values"][idx, c_9131] + fd["values"][idx, c_9132]
+        fd_exp = fd["values"][idx, c_9140]
+
+        kpis = {
             "총투입(=총산출)": f"{tot_input:,.0f} 백만원",
             "총공급(=총수요)": f"{supply_val:,.0f} 백만원",
             "부가가치율": f"{(va_val / tot_input * 100) if tot_input else 0:.2f} %",
@@ -127,13 +172,36 @@ class IOAnalyzer:
             "수입의존도 (수입중간재/총투입)": f"{(imp_mid / tot_input * 100) if tot_input else 0:.2f} %",
             "수출률 (수출액/총산출)": f"{(export_val / output_val * 100) if output_val else 0:.2f} %",
             "수입률 (수입계/총공급)": f"{(import_val / supply_val * 100) if supply_val else 0:.2f} %",
-            "생산유발계수 (열합)": f"{p_s['values'][r_colsum, idx]:.4f}",
-            "부가가치유발계수 (열합)": f"{self.va_ind['values'][v_colsum, idx]:.4f}",
-            "수입유발계수 (열합)": f"{self.imp_ind['values'][i_colsum, idx]:.4f}",
-            "영향력계수 (후방연쇄)": f"{p_s['values'][r_power, idx]:.4f}",
-            "감응도계수 (전방연쇄)": f"{p_s['values'][idx, c_sens]:.4f}"
+            "생산유발계수 (열합)": f"{p_s['values'][r_colsum, idx]:.4f} (최종수요 1단위당)",
+            "부가가치유발계수 (열합)": f"{self.va_ind['values'][v_colsum, idx]:.4f} (최종수요 1단위당)",
+            "수입유발계수 (열합)": f"{self.imp_ind['values'][i_colsum, idx]:.4f} (최종수요 1단위당)",
+            "영향력계수 (후방연쇄)": f"{power_val:.4f} (지수, 평균=1.0)",
+            "감응도계수 (전방연쇄)": f"{sens_val:.4f} (지수, 평균=1.0)",
+            "생산의 소비 의존도": f"{(fd_cons / fd_tot * 100) if fd_tot else 0:.2f} %",
+            "생산의 투자 의존도": f"{(fd_inv / fd_tot * 100) if fd_tot else 0:.2f} %",
+            "생산의 수출 의존도": f"{(fd_exp / fd_tot * 100) if fd_tot else 0:.2f} %"
         }
-        return json.dumps(res, ensure_ascii=False)
+
+        a_col = self.df_a["values"][:n, idx]
+        top_in_idx = np.argsort(a_col)[::-1][:5]
+        top_inputs = [
+            {"code": self.sector_codes[i], "name": self.sector_names[i], "val": float(a_col[i])}
+            for i in top_in_idx if a_col[i] > 0
+        ]
+
+        out_row = t["values"][idx, :n]
+        top_out_idx = np.argsort(out_row)[::-1][:5]
+        top_outputs = [
+            {"code": self.sector_codes[i], "name": self.sector_names[i], "val": float(out_row[i])}
+            for i in top_out_idx if out_row[i] > 0
+        ]
+
+        return json.dumps({
+            "linkage_type": l_type,
+            "kpis": kpis,
+            "top_inputs": top_inputs,
+            "top_outputs": top_outputs
+        }, ensure_ascii=False)
 
     def simulate_demand(self, shocks_json):
         shocks = json.loads(shocks_json)

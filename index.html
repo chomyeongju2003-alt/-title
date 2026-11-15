@@ -30,7 +30,7 @@
 
     <section class="card">
       <h2>1. 원자료 및 유발계수표 탐색</h2>
-      <p class="desc">시트(거래표, 투입계수, 유발계수, 항목별 유발액)와 행·열을 선택해 수치를 조회합니다. (금액표 단위: 백만원 / 계수표: 단위 없음)</p>
+      <p class="desc">12개 시트(총·국산·수입 거래표, 투입계수, 유발계수, 항목별 유발액)와 행·열을 검색해 수치를 조회합니다. 행·열 특성에 따라 단위(백만원, %, 계수, 지수)가 자동 구분됩니다.</p>
       <div class="grid-2">
         <div>
           <label for="sheetSelect">시트 선택</label>
@@ -38,7 +38,7 @@
         </div>
         <div>
           <label for="rowSearch">행(산업/항목) 검색</label>
-          <input type="text" id="rowSearch" placeholder="예: 자동차, 반도체, 부가가치계" disabled />
+          <input type="text" id="rowSearch" placeholder="예: 자동차, 반도체, 부가가치계, 영향력계수" disabled />
         </div>
         <div>
           <label for="rowSelect">행 선택</label>
@@ -60,8 +60,8 @@
     </section>
 
     <section class="card">
-      <h2>2. 산업별 경제구조 및 전·후방 연쇄효과 분석</h2>
-      <p class="desc">한국은행 산업연관표 산식에 따라 선택한 산업의 투입구조·대외거래 비율(%)과 생산·부가가치·수입유발계수, 영향력·감응도계수를 계산합니다.</p>
+      <h2>2. 산업별 경제구조 · 연쇄효과 · 최종수요 의존도 심층 분석</h2>
+      <p class="desc">선택한 산업의 투입구조·대외거래 비율(%), 유발계수, 영향력·감응도지수(전산업 평균=1.0), 최종수요(소비·투자·수출) 의존도(%) 및 주요 투입·판매 연관산업 TOP 5를 분석합니다.</p>
       <div class="grid-2">
         <div>
           <label for="indSearch">분석할 산업 검색</label>
@@ -72,12 +72,33 @@
           <select id="indSelect" disabled></select>
         </div>
       </div>
+      <div id="linkageTypeBox" class="status" style="margin-bottom:12px;"></div>
       <div id="indicatorResult" class="kpi-grid"></div>
+      <div class="grid-2" style="margin-top:16px;">
+        <div class="table-wrap">
+          <table id="topInputTable">
+            <thead>
+              <tr><th colspan="3">주요 중간재 투입처 TOP 5 (총투입계수 기준)</th></tr>
+              <tr><th>코드</th><th>투입 산업명</th><th>투입계수 (투입액/총투입)</th></tr>
+            </thead>
+            <tbody><tr><td colspan="3" class="empty">산업을 선택하세요.</td></tr></tbody>
+          </table>
+        </div>
+        <div class="table-wrap">
+          <table id="topOutputTable">
+            <thead>
+              <tr><th colspan="3">주요 중간수요 판매처 TOP 5 (총거래표 기준)</th></tr>
+              <tr><th>코드</th><th>수요 산업명</th><th>판매액 (백만원)</th></tr>
+            </thead>
+            <tbody><tr><td colspan="3" class="empty">산업을 선택하세요.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <section class="card">
       <h2>3. 국내 생산물 최종수요 증가 파급효과 시뮬레이션</h2>
-      <p class="desc">국산 최종수요 증가액(단위: 백만원)을 시나리오에 추가하면 전 산업의 생산·부가가치·수입 유발액을 계산합니다.</p>
+      <p class="desc">국산 최종수요 증가액(단위: 백만원)을 시나리오에 추가하면 전 산업의 생산·부가가치·수입 유발액(단위: 백만원)을 계산합니다.</p>
       <div class="grid-3">
         <div>
           <label for="simIndSearch">산업 검색</label>
